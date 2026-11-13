@@ -2,8 +2,55 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Ballistics & Drag Lab — Projectile Motion vs. Vacuum</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#060913" />
+
+  <!-- Primary SEO -->
+  <title>Projectiles Made Fun</title>
+  <meta name="description" content="Interactive projectile simulator. Compare ideal vacuum flight with real air drag: tune speed, angle, mass and shape on Earth, Moon, Mars or Jupiter." />
+  <meta name="author" content="Nikhil" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <!-- TODO: replace https://YOUR-DOMAIN.com/ with the real address of this page (keep social.jpg beside it) -->
+  <link rel="canonical" href="https://projectiles.pages.dev/" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AF%3C/text%3E%3C/svg%3E" />
+
+  <!-- Open Graph (Facebook, LinkedIn, WhatsApp, Telegram, Slack, Discord) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="The Ballistics & Drag Lab" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:url" content="https://projectiles.pages.dev/" />
+  <meta property="og:title" content="See what air really does to a cannonball | Ballistics & Drag Lab" />
+  <meta property="og:description" content="Fire a cannon and watch air drag shorten the range, flatten the apex and steepen the fall, compared live against a perfect vacuum. Try Earth, Moon, Mars and Jupiter." />
+  <meta property="og:image" content="https://projectiles.pages.dev/social.jpg" />
+  <meta property="og:image:secure_url" content="https://YOUR-DOMAIN.com/social.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Two projectile arcs from a cannon: a tall dashed vacuum path and a shorter, steeper orange path with air drag." />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Ballistics & Drag Lab: Vacuum vs Real-Air Projectile Motion" />
+  <meta name="twitter:description" content="Fire a cannon and compare a perfect vacuum with real quadratic drag. Tune speed, angle, mass and shape on Earth, Moon, Mars or Jupiter and watch range and apex change live." />
+  <meta name="twitter:image" content="https://projectiles.pages.dev/social.jpg" />
+  <meta name="twitter:image:alt" content="Two projectile arcs from a cannon: a tall dashed vacuum path and a shorter, steeper orange path with air drag." />
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "The Ballistics & Drag Lab",
+    "description": "Interactive projectile motion simulator comparing ideal vacuum flight with quadratic air drag, using an RK4 solver on Earth, Moon, Mars and Jupiter.",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Any (web browser)",
+    "inLanguage": "en",
+    "url": "https://YOUR-DOMAIN.com/",
+    "image": "https://YOUR-DOMAIN.com/social.jpg",
+    "isAccessibleForFree": true
+  }
+  </script>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <!-- Google Fonts: Inter & JetBrains Mono -->
@@ -80,9 +127,40 @@
     canvas {
       touch-action: none;
     }
+    /* Theme-aware slider/scrollbar colours (previously only dark values existed) */
+    :root { --slider-track-bg: #e2e8f0; --slider-track-border: #cbd5e1; --scrollbar-track: #f1f5f9; --scrollbar-thumb: #cbd5e1; }
+    html.dark { --slider-track-bg: #1e293b; --slider-track-border: #334155; --scrollbar-track: #0f172a; --scrollbar-thumb: #334155; }
+    /* Firefox sliders (the -webkit rules above don't apply there) */
+    input[type="range"]::-moz-range-track {
+      height: 6px; border-radius: 999px;
+      background: var(--slider-track-bg, #1e293b); border: 1px solid var(--slider-track-border, #334155);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px; height: 12px; border-radius: 50%; background: #6366f1; border: 2px solid #e0e7ff;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+    }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+      min-height: 100vh; min-height: 100dvh;
+      padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    /* Desktop: lock the app to the viewport (dvh avoids mobile address-bar jumps) */
+    @media (min-width: 1024px) { body { height: 100vh; height: 100dvh; } }
+    /* Touch devices: bigger sliders and buttons */
+    @media (pointer: coarse) {
+      input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; margin-top: -11px; }
+      input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; }
+      input[type="range"]::-webkit-slider-runnable-track { height: 8px; }
+      input[type="range"] { min-height: 32px; }
+      .step-btn { width: 2.25rem !important; height: 2.25rem !important; font-size: 1rem !important; }
+    }
+    /* Very small phones: the vector legend would crowd the canvas */
+    @media (max-width: 479px) { #vector-legend { display: none !important; } }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col lg:h-screen lg:overflow-hidden transition-colors duration-200">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col lg:overflow-hidden transition-colors duration-200">
 
   <!-- Top Header Bar -->
   <header class="bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0 z-20 backdrop-blur-md">
@@ -132,7 +210,7 @@
 
       <button id="btn-clear" class="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:border-rose-300 dark:hover:border-rose-800/70 hover:text-rose-700 dark:hover:text-rose-200 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs sm:text-sm transition active:scale-95 cursor-pointer">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2m-9 4v10m4-10v10m4-10v10M5 6l1 14a2 2 0 002 2h8a2 2 0 002-2l1-14"/></svg>
-        <span>Clear</span>
+        <span class="hidden min-[420px]:inline">Clear</span>
       </button>
 
       <label class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-800">
@@ -149,11 +227,11 @@
     <section class="flex-1 flex flex-col min-w-0 bg-slate-100 dark:bg-slate-950 relative">
       
       <!-- Canvas Wrapper -->
-      <div id="canvas-container" class="relative flex-1 min-h-[380px] sm:min-h-[440px] lg:min-h-0 w-full overflow-hidden select-none">
-        <canvas id="sim-canvas" class="block w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+      <div id="canvas-container" class="relative w-full h-[56vh] min-h-[300px] max-h-[640px] lg:h-auto lg:min-h-0 lg:max-h-none lg:flex-1 overflow-hidden select-none">
+        <canvas id="sim-canvas" role="img" aria-label="Projectile trajectories: ideal vacuum compared with air drag" class="absolute inset-0 block w-full h-full cursor-grab active:cursor-grabbing"></canvas>
 
         <!-- Top-Left Canvas Legend & Environment Badge -->
-        <div class="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none">
+        <div class="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none max-w-[calc(100%-9.5rem)] sm:max-w-[calc(100%-17rem)] lg:max-w-[calc(100%-17rem)]">
           <div class="bg-white/90 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 shadow-xl flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
             <div class="flex items-center gap-2">
               <span class="w-4 h-0.5 border-t-2 border-dashed border-sky-500 dark:border-sky-400 inline-block"></span>
@@ -202,11 +280,11 @@
 
         <!-- Bottom-Right Zoom & Scale Indicator -->
         <div class="absolute bottom-3 right-3 flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-[11px] font-mono text-slate-600 dark:text-slate-400">
-          <button id="btn-zoom-out" class="hover:text-slate-900 dark:hover:text-white px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80 cursor-pointer" title="Zoom Out">−</button>
+          <button id="btn-zoom-out" class="hover:text-slate-900 dark:hover:text-white px-2.5 py-1 min-w-[28px] rounded bg-slate-100 dark:bg-slate-800/80 cursor-pointer" title="Zoom Out">−</button>
           <span id="hud-zoom">100%</span>
-          <button id="btn-zoom-in" class="hover:text-slate-900 dark:hover:text-white px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80 cursor-pointer" title="Zoom In">+</button>
+          <button id="btn-zoom-in" class="hover:text-slate-900 dark:hover:text-white px-2.5 py-1 min-w-[28px] rounded bg-slate-100 dark:bg-slate-800/80 cursor-pointer" title="Zoom In">+</button>
           <span class="text-slate-400 dark:text-slate-600 mx-0.5">|</span>
-          <span>Scroll/Drag to Pan</span>
+          <span class="hidden sm:inline">Scroll or pinch to zoom · drag to pan</span>
         </div>
 
         <!-- Live Flight Clock Pill (Bottom-Left of Canvas) -->
@@ -218,15 +296,15 @@
 
       <!-- Real-Time Comparative Telemetry Dashboard (Bottom Bar under Canvas) -->
       <div class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-3 sm:px-5 py-3 shrink-0">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+        <div class="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3">
           
           <!-- Metric 1: Apex Height -->
           <div class="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/90 rounded-xl p-2.5 sm:p-3">
-            <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
+            <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
               <span>Apex Height (y<sub>max</sub>)</span>
               <span id="tel-apex-diff" class="font-mono text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded">0.0%</span>
             </div>
-            <div class="flex items-baseline justify-between gap-2 font-mono text-xs sm:text-sm">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 font-mono text-xs sm:text-sm">
               <div>
                 <span class="text-[10px] text-orange-600 dark:text-orange-400 block">DRAG</span>
                 <span id="tel-apex-drag" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">0.00</span> <span class="text-slate-500 text-xs">m</span>
@@ -240,11 +318,11 @@
 
           <!-- Metric 2: Total Range -->
           <div class="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/90 rounded-xl p-2.5 sm:p-3">
-            <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
+            <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
               <span>Range (x<sub>max</sub>)</span>
               <span id="tel-range-diff" class="font-mono text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded">0.0%</span>
             </div>
-            <div class="flex items-baseline justify-between gap-2 font-mono text-xs sm:text-sm">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 font-mono text-xs sm:text-sm">
               <div>
                 <span class="text-[10px] text-orange-600 dark:text-orange-400 block">DRAG</span>
                 <span id="tel-range-drag" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">0.00</span> <span class="text-slate-500 text-xs">m</span>
@@ -258,11 +336,11 @@
 
           <!-- Metric 3: Time of Flight -->
           <div class="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/90 rounded-xl p-2.5 sm:p-3">
-            <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
+            <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
               <span>Time of Flight</span>
               <span id="tel-time-diff" class="font-mono text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded">0.0%</span>
             </div>
-            <div class="flex items-baseline justify-between gap-2 font-mono text-xs sm:text-sm">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 font-mono text-xs sm:text-sm">
               <div>
                 <span class="text-[10px] text-orange-600 dark:text-orange-400 block">DRAG</span>
                 <span id="tel-time-drag" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">0.00</span> <span class="text-slate-500 text-xs">s</span>
@@ -276,11 +354,11 @@
 
           <!-- Metric 4: Speed & Terminal Velocity -->
           <div class="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/90 rounded-xl p-2.5 sm:p-3">
-            <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
+            <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">
               <span id="tel-vel-label">Live / Impact Speed</span>
               <span class="font-mono text-indigo-600 dark:text-indigo-300" title="Theoretical Terminal Velocity v_t = sqrt(2mg / (rho * Cd * A))">v<sub>t</sub>: <span id="tel-vt">46.6</span> m/s</span>
             </div>
-            <div class="flex items-baseline justify-between gap-2 font-mono text-xs sm:text-sm">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 font-mono text-xs sm:text-sm">
               <div>
                 <span class="text-[10px] text-orange-600 dark:text-orange-400 block">DRAG</span>
                 <span id="tel-vel-drag" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">50.0</span> <span class="text-slate-500 text-xs">m/s</span>
@@ -297,8 +375,8 @@
     </section>
 
     <!-- Right Sidebar: Physics Controls & Environmental Presets -->
-    <aside class="w-full lg:w-[370px] xl:w-[400px] bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col lg:h-full lg:overflow-y-auto shrink-0">
-      <div class="p-4 sm:p-5 space-y-5">
+    <aside class="w-full lg:w-[370px] xl:w-[400px] 2xl:w-[440px] bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col lg:h-full lg:overflow-y-auto shrink-0">
+      <div class="p-4 sm:p-5 pb-6 space-y-5 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-start lg:block lg:space-y-5">
 
         <!-- Section 1: Environment Presets -->
         <div>
@@ -634,10 +712,11 @@
       updateAutoFit(maxWorldX, maxWorldY, width, height, dtFrame) {
         if (!this.autoFit) return;
 
-        const padLeft = 72;
-        const padRight = 56;
-        const padTop = 68;
-        const padBottom = 56;
+        const compact = width < 640;
+        const padLeft = compact ? 46 : 72;
+        const padRight = compact ? 22 : 56;
+        const padTop = compact ? 96 : 68;
+        const padBottom = compact ? 48 : 56;
 
         const usableW = Math.max(120, width - padLeft - padRight);
         const usableH = Math.max(120, height - padTop - padBottom);
@@ -1130,7 +1209,11 @@
         this.bindUI();
         this.recalculatePreviewAndSummary();
         this.renderer.resize();
-        window.addEventListener('resize', () => this.renderer.resize());
+        if (window.ResizeObserver) {
+          new ResizeObserver(() => this.renderer.resize()).observe(this.canvas.parentElement);
+        } else {
+          window.addEventListener('resize', () => this.renderer.resize());
+        }
       }
 
       bindUI() {
@@ -1242,24 +1325,56 @@
           this.updateAutoFitButton();
         }, { passive: false });
 
-        this.canvas.addEventListener('pointerdown', (e) => {
+        // Pointer input: one pointer pans, two pointers pinch-zoom (touch, mouse and pen)
+        const pointers = new Map();
+        let pinch = null;
+        const localPos = (e) => {
+          const r = this.canvas.getBoundingClientRect();
+          return { x: e.clientX - r.left, y: e.clientY - r.top };
+        };
+        const beginPan = () => {
+          const p = pointers.values().next().value;
           this.camera.isDragging = true;
-          this.camera.dragStart = { x: e.clientX - this.camera.originX, y: e.clientY - this.camera.originY };
+          this.camera.dragStart = { x: p.x - this.camera.originX, y: p.y - this.camera.originY };
+        };
+        this.canvas.addEventListener('pointerdown', (e) => {
+          pointers.set(e.pointerId, localPos(e));
           this.canvas.setPointerCapture(e.pointerId);
+          if (pointers.size === 1) {
+            pinch = null;
+            beginPan();
+          } else if (pointers.size === 2) {
+            this.camera.isDragging = false;
+            const [a, b] = [...pointers.values()];
+            pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+          }
         });
-
         this.canvas.addEventListener('pointermove', (e) => {
-          if (!this.camera.isDragging) return;
-          this.camera.autoFit = false;
-          this.camera.originX = e.clientX - this.camera.dragStart.x;
-          this.camera.originY = e.clientY - this.camera.dragStart.y;
-          this.updateAutoFitButton();
+          if (!pointers.has(e.pointerId)) return;
+          pointers.set(e.pointerId, localPos(e));
+          if (pointers.size === 2 && pinch) {
+            const [a, b] = [...pointers.values()];
+            const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+            this.camera.zoomAt(dist / pinch.dist, (a.x + b.x) / 2, (a.y + b.y) / 2);
+            pinch.dist = dist;
+            this.updateAutoFitButton();
+          } else if (pointers.size === 1 && this.camera.isDragging) {
+            const p = pointers.values().next().value;
+            this.camera.autoFit = false;
+            this.camera.originX = p.x - this.camera.dragStart.x;
+            this.camera.originY = p.y - this.camera.dragStart.y;
+            this.updateAutoFitButton();
+          }
         });
-
-        this.canvas.addEventListener('pointerup', (e) => {
-          this.camera.isDragging = false;
-          this.canvas.releasePointerCapture(e.pointerId);
-        });
+        const endPointer = (e) => {
+          pointers.delete(e.pointerId);
+          try { this.canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+          pinch = null;
+          if (pointers.size === 1) beginPan();
+          else this.camera.isDragging = false;
+        };
+        this.canvas.addEventListener('pointerup', endPointer);
+        this.canvas.addEventListener('pointercancel', endPointer);
 
         window.addEventListener('keydown', (e) => {
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
