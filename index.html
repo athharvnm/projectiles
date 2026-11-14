@@ -1,28 +1,37 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="dark light" />
-  <meta name="theme-color" content="#060913" />
+  <meta name="theme-color" content="#f1f5f9" />
+  <script>
+    /* Light is the default; restore the visitor's saved choice before first paint */
+    try {
+      if (localStorage.getItem('bdl-theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#060913');
+      }
+    } catch (e) {}
+  </script>
 
   <!-- Primary SEO -->
-  <title>Projectiles Made Fun</title>
+  <title>Ballistics & Drag Lab: Projectile Motion vs Air Resistance</title>
   <meta name="description" content="Interactive projectile simulator. Compare ideal vacuum flight with real air drag: tune speed, angle, mass and shape on Earth, Moon, Mars or Jupiter." />
   <meta name="author" content="Nikhil" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <!-- TODO: replace https://YOUR-DOMAIN.com/ with the real address of this page (keep social.jpg beside it) -->
-  <link rel="canonical" href="https://projectiles.pages.dev/" />
+  <link rel="canonical" href="https://YOUR-DOMAIN.com/" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AF%3C/text%3E%3C/svg%3E" />
 
   <!-- Open Graph (Facebook, LinkedIn, WhatsApp, Telegram, Slack, Discord) -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="The Ballistics & Drag Lab" />
   <meta property="og:locale" content="en_US" />
-  <meta property="og:url" content="https://projectiles.pages.dev/" />
+  <meta property="og:url" content="https://YOUR-DOMAIN.com/" />
   <meta property="og:title" content="See what air really does to a cannonball | Ballistics & Drag Lab" />
   <meta property="og:description" content="Fire a cannon and watch air drag shorten the range, flatten the apex and steepen the fall, compared live against a perfect vacuum. Try Earth, Moon, Mars and Jupiter." />
-  <meta property="og:image" content="https://projectiles.pages.dev/social.jpg" />
+  <meta property="og:image" content="https://YOUR-DOMAIN.com/social.jpg" />
   <meta property="og:image:secure_url" content="https://YOUR-DOMAIN.com/social.jpg" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
@@ -33,7 +42,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Ballistics & Drag Lab: Vacuum vs Real-Air Projectile Motion" />
   <meta name="twitter:description" content="Fire a cannon and compare a perfect vacuum with real quadratic drag. Tune speed, angle, mass and shape on Earth, Moon, Mars or Jupiter and watch range and apex change live." />
-  <meta name="twitter:image" content="https://projectiles.pages.dev/social.jpg" />
+  <meta name="twitter:image" content="https://YOUR-DOMAIN.com/social.jpg" />
   <meta name="twitter:image:alt" content="Two projectile arcs from a cannon: a tall dashed vacuum path and a shorter, steeper orange path with air drag." />
 
   <!-- Structured data -->
@@ -125,7 +134,7 @@
       background: #475569;
     }
     canvas {
-      touch-action: none;
+      touch-action: pan-y; /* one finger scrolls the page; pinch is handled in JS */
     }
     /* Theme-aware slider/scrollbar colours (previously only dark values existed) */
     :root { --slider-track-bg: #e2e8f0; --slider-track-border: #cbd5e1; --scrollbar-track: #f1f5f9; --scrollbar-thumb: #cbd5e1; }
@@ -219,6 +228,15 @@
       </label>
     </div>
   </header>
+
+  <!-- Small-screen notice (hidden from tablet width up; dismissible) -->
+  <div id="mobile-notice" role="status" class="md:hidden shrink-0 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-500/30 text-amber-900 dark:text-amber-100 px-3 py-2 text-xs leading-relaxed">
+    <div class="flex items-start gap-2">
+      <span aria-hidden="true">📱</span>
+      <p class="flex-1">We'd love for you to try this on your phone, but the lab packs more controls and readouts than a small screen can comfortably hold. For the best experience, use a tablet or computer, or turn your phone sideways.</p>
+      <button id="btn-dismiss-notice" type="button" aria-label="Dismiss notice" class="shrink-0 -mt-1 -mr-1 w-8 h-8 rounded-lg text-base text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-500/20 cursor-pointer">✕</button>
+    </div>
+  </div>
 
   <!-- Main Workspace Split Layout -->
   <main class="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
@@ -691,6 +709,7 @@
         this.targetOriginX = 72;
         this.targetOriginY = 400;
         this.autoFit = true;
+        this.snapNext = true; // jump (no easing) on first frame and after a resize
         this.isDragging = false;
         this.dragStart = { x: 0, y: 0 };
       }
@@ -721,8 +740,15 @@
         const usableW = Math.max(120, width - padLeft - padRight);
         const usableH = Math.max(120, height - padTop - padBottom);
 
-        const safeX = Math.max(20, maxWorldX * 1.08);
-        const safeY = Math.max(12, maxWorldY * 1.15);
+        // Round the fitted extents UP to "nice" steps, so small slider tweaks leave the view untouched
+        // and it only re-fits when a shot genuinely needs more (or much less) room.
+        const niceCeil = (v) => {
+          const p = Math.pow(10, Math.floor(Math.log10(v)));
+          const n = v / p;
+          return p * [1, 1.5, 2, 3, 4, 5, 6, 8, 10].find(s => n <= s + 1e-9);
+        };
+        const safeX = niceCeil(Math.max(20, maxWorldX * 1.05));
+        const safeY = niceCeil(Math.max(12, maxWorldY * 1.1));
 
         const scaleX = usableW / safeX;
         const scaleY = usableH / safeY;
@@ -730,7 +756,8 @@
         this.targetOriginX = padLeft;
         this.targetOriginY = height - padBottom;
 
-        const lerp = 1 - Math.exp(-10 * dtFrame);
+        const lerp = this.snapNext ? 1 : 1 - Math.exp(-7 * dtFrame);
+        this.snapNext = false;
         this.scale += (this.targetScale - this.scale) * lerp;
         this.originX += (this.targetOriginX - this.originX) * lerp;
         this.originY += (this.targetOriginY - this.originY) * lerp;
@@ -1210,7 +1237,7 @@
         this.recalculatePreviewAndSummary();
         this.renderer.resize();
         if (window.ResizeObserver) {
-          new ResizeObserver(() => this.renderer.resize()).observe(this.canvas.parentElement);
+          new ResizeObserver(() => { this.renderer.resize(); this.camera.snapNext = true; }).observe(this.canvas.parentElement);
         } else {
           window.addEventListener('resize', () => this.renderer.resize());
         }
@@ -1219,12 +1246,10 @@
       bindUI() {
         // Theme toggle button
         document.getElementById('btn-theme').addEventListener('click', () => {
-          const html = document.documentElement;
-          if (html.classList.contains('dark')) {
-            html.classList.remove('dark');
-          } else {
-            html.classList.add('dark');
-          }
+          const dark = document.documentElement.classList.toggle('dark');
+          try { localStorage.setItem('bdl-theme', dark ? 'dark' : 'light'); } catch (e) {}
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#060913' : '#f1f5f9');
         });
 
         const bindSlider = (id, key, formatter, onChangeExtra) => {
@@ -1342,11 +1367,11 @@
           this.canvas.setPointerCapture(e.pointerId);
           if (pointers.size === 1) {
             pinch = null;
-            beginPan();
+            if (e.pointerType !== 'touch') beginPan();
           } else if (pointers.size === 2) {
             this.camera.isDragging = false;
             const [a, b] = [...pointers.values()];
-            pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+            pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
           }
         });
         this.canvas.addEventListener('pointermove', (e) => {
@@ -1355,8 +1380,12 @@
           if (pointers.size === 2 && pinch) {
             const [a, b] = [...pointers.values()];
             const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
-            this.camera.zoomAt(dist / pinch.dist, (a.x + b.x) / 2, (a.y + b.y) / 2);
+            const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+            this.camera.zoomAt(dist / pinch.dist, mid.x, mid.y);
+            this.camera.originX += mid.x - pinch.mid.x;
+            this.camera.originY += mid.y - pinch.mid.y;
             pinch.dist = dist;
+            pinch.mid = mid;
             this.updateAutoFitButton();
           } else if (pointers.size === 1 && this.camera.isDragging) {
             const p = pointers.values().next().value;
@@ -1370,7 +1399,7 @@
           pointers.delete(e.pointerId);
           try { this.canvas.releasePointerCapture(e.pointerId); } catch (_) {}
           pinch = null;
-          if (pointers.size === 1) beginPan();
+          if (pointers.size === 1 && e.pointerType !== 'touch') beginPan();
           else this.camera.isDragging = false;
         };
         this.canvas.addEventListener('pointerup', endPointer);
@@ -1391,6 +1420,16 @@
           }
         });
 
+        const notice = document.getElementById('mobile-notice');
+        if (notice) {
+          try { if (sessionStorage.getItem('bdl-notice-dismissed')) notice.remove(); } catch (_) {}
+          const closeBtn = document.getElementById('btn-dismiss-notice');
+          if (closeBtn) closeBtn.addEventListener('click', () => {
+            try { sessionStorage.setItem('bdl-notice-dismissed', '1'); } catch (_) {}
+            notice.remove();
+          });
+        }
+
         // Mouse clicks drop button focus so Space keeps firing/pausing; keyboard activation is unaffected
         document.querySelectorAll('button').forEach(b => b.addEventListener('pointerup', () => b.blur()));
 
@@ -1406,7 +1445,7 @@
           btn.classList.remove('bg-slate-200', 'dark:bg-slate-800/90', 'border-slate-300', 'dark:border-slate-700', 'text-slate-700', 'dark:text-slate-200');
           btn.classList.add('bg-indigo-600/90', 'border-indigo-400/40', 'text-white');
         } else {
-          label.textContent = 'Re-Center';
+          label.textContent = 'Fit View';
           btn.classList.remove('bg-indigo-600/90', 'border-indigo-400/40', 'text-white');
           btn.classList.add('bg-slate-200', 'dark:bg-slate-800/90', 'border-slate-300', 'dark:border-slate-700', 'text-slate-700', 'dark:text-slate-200');
         }
